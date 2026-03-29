@@ -11,19 +11,29 @@ import (
 )
 
 type Client struct {
-	BaseURL    string
-	APIKey     string
-	HTTPClient *http.Client
+	BaseURL     string
+	APIKey      string
+	APIBasePath string
+	HTTPClient  *http.Client
 }
 
-func NewClient(baseURL, apiKey string) *Client {
+func NewClient(baseURL, apiKey, apiBasePath string) *Client {
+	if apiBasePath == "" {
+		apiBasePath = "/api"
+	}
 	return &Client{
-		BaseURL: baseURL,
-		APIKey:  apiKey,
+		BaseURL:     baseURL,
+		APIKey:      apiKey,
+		APIBasePath: apiBasePath,
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 	}
+}
+
+// apiPath constructs the full API path by prepending the configured base path.
+func (c *Client) apiPath(resource string) string {
+	return c.APIBasePath + resource
 }
 
 func (c *Client) doRequest(ctx context.Context, method, path string, body interface{}) ([]byte, error) {
@@ -151,7 +161,7 @@ type SavedFilterValue struct {
 }
 
 func (c *Client) ListDashboards(ctx context.Context) ([]Dashboard, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, "/api/v2/dashboards", nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/dashboards"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +169,7 @@ func (c *Client) ListDashboards(ctx context.Context) ([]Dashboard, error) {
 }
 
 func (c *Client) GetDashboard(ctx context.Context, id string) (*Dashboard, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, "/api/v2/dashboards/"+id, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/dashboards/")+id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +181,7 @@ func (c *Client) GetDashboard(ctx context.Context, id string) (*Dashboard, error
 }
 
 func (c *Client) CreateDashboard(ctx context.Context, d Dashboard) (*Dashboard, error) {
-	resp, err := c.doRequest(ctx, http.MethodPost, "/api/v2/dashboards", d)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.apiPath("/dashboards"), d)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +193,7 @@ func (c *Client) CreateDashboard(ctx context.Context, d Dashboard) (*Dashboard, 
 }
 
 func (c *Client) UpdateDashboard(ctx context.Context, id string, d Dashboard) (*Dashboard, error) {
-	resp, err := c.doRequest(ctx, http.MethodPut, "/api/v2/dashboards/"+id, d)
+	resp, err := c.doRequest(ctx, http.MethodPut, c.apiPath("/dashboards/")+id, d)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +205,7 @@ func (c *Client) UpdateDashboard(ctx context.Context, id string, d Dashboard) (*
 }
 
 func (c *Client) DeleteDashboard(ctx context.Context, id string) error {
-	_, err := c.doRequest(ctx, http.MethodDelete, "/api/v2/dashboards/"+id, nil)
+	_, err := c.doRequest(ctx, http.MethodDelete, c.apiPath("/dashboards/")+id, nil)
 	return err
 }
 
@@ -235,7 +245,7 @@ type AlertSilence struct {
 }
 
 func (c *Client) ListAlerts(ctx context.Context) ([]Alert, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, "/api/v2/alerts", nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/alerts"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +253,7 @@ func (c *Client) ListAlerts(ctx context.Context) ([]Alert, error) {
 }
 
 func (c *Client) GetAlert(ctx context.Context, id string) (*Alert, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, "/api/v2/alerts/"+id, nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/alerts/")+id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +265,7 @@ func (c *Client) GetAlert(ctx context.Context, id string) (*Alert, error) {
 }
 
 func (c *Client) CreateAlert(ctx context.Context, a Alert) (*Alert, error) {
-	resp, err := c.doRequest(ctx, http.MethodPost, "/api/v2/alerts", a)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.apiPath("/alerts"), a)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +277,7 @@ func (c *Client) CreateAlert(ctx context.Context, a Alert) (*Alert, error) {
 }
 
 func (c *Client) UpdateAlert(ctx context.Context, id string, a Alert) (*Alert, error) {
-	resp, err := c.doRequest(ctx, http.MethodPut, "/api/v2/alerts/"+id, a)
+	resp, err := c.doRequest(ctx, http.MethodPut, c.apiPath("/alerts/")+id, a)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +289,7 @@ func (c *Client) UpdateAlert(ctx context.Context, id string, a Alert) (*Alert, e
 }
 
 func (c *Client) DeleteAlert(ctx context.Context, id string) error {
-	_, err := c.doRequest(ctx, http.MethodDelete, "/api/v2/alerts/"+id, nil)
+	_, err := c.doRequest(ctx, http.MethodDelete, c.apiPath("/alerts/")+id, nil)
 	return err
 }
 
@@ -318,7 +328,7 @@ type SourceQuerySetting struct {
 }
 
 func (c *Client) ListSources(ctx context.Context) ([]Source, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, "/api/v2/sources", nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/sources"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +351,7 @@ type Webhook struct {
 }
 
 func (c *Client) ListWebhooks(ctx context.Context) ([]Webhook, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, "/api/v2/webhooks", nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/webhooks"), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +373,7 @@ func (c *Client) GetWebhook(ctx context.Context, id string) (*Webhook, error) {
 }
 
 func (c *Client) CreateWebhook(ctx context.Context, w Webhook) (*Webhook, error) {
-	resp, err := c.doRequest(ctx, http.MethodPost, "/api/webhooks", w)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.apiPath("/webhooks"), w)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +385,7 @@ func (c *Client) CreateWebhook(ctx context.Context, w Webhook) (*Webhook, error)
 }
 
 func (c *Client) UpdateWebhook(ctx context.Context, id string, w Webhook) (*Webhook, error) {
-	resp, err := c.doRequest(ctx, http.MethodPut, "/api/webhooks/"+id, w)
+	resp, err := c.doRequest(ctx, http.MethodPut, c.apiPath("/webhooks/")+id, w)
 	if err != nil {
 		return nil, err
 	}
@@ -387,6 +397,6 @@ func (c *Client) UpdateWebhook(ctx context.Context, id string, w Webhook) (*Webh
 }
 
 func (c *Client) DeleteWebhook(ctx context.Context, id string) error {
-	_, err := c.doRequest(ctx, http.MethodDelete, "/api/webhooks/"+id, nil)
+	_, err := c.doRequest(ctx, http.MethodDelete, c.apiPath("/webhooks/")+id, nil)
 	return err
 }

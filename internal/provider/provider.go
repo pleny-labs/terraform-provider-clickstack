@@ -19,8 +19,9 @@ type ClickStackProvider struct {
 }
 
 type ClickStackProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
-	APIKey   types.String `tfsdk:"api_key"`
+	Endpoint    types.String `tfsdk:"endpoint"`
+	APIKey      types.String `tfsdk:"api_key"`
+	APIBasePath types.String `tfsdk:"api_base_path"`
 }
 
 func New(version string) func() provider.Provider {
@@ -48,6 +49,10 @@ func (p *ClickStackProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 				Description: "The ClickStack API key for authentication. Can also be set via the CLICKSTACK_API_KEY environment variable.",
 				Optional:    true,
 				Sensitive:   true,
+			},
+			"api_base_path": schema.StringAttribute{
+				Description: "The API base path prefix for all requests (e.g. /api or /api/v2). Defaults to /api. Can also be set via the CLICKSTACK_API_BASE_PATH environment variable.",
+				Optional:    true,
 			},
 		},
 	}
@@ -86,7 +91,12 @@ func (p *ClickStackProvider) Configure(ctx context.Context, req provider.Configu
 		return
 	}
 
-	c := client.NewClient(endpoint, apiKey)
+	apiBasePath := os.Getenv("CLICKSTACK_API_BASE_PATH")
+	if !config.APIBasePath.IsNull() {
+		apiBasePath = config.APIBasePath.ValueString()
+	}
+
+	c := client.NewClient(endpoint, apiKey, apiBasePath)
 	resp.DataSourceData = c
 	resp.ResourceData = c
 }
