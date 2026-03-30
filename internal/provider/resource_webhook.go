@@ -166,7 +166,10 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	flattenWebhookToState(result, &plan)
+	// Only set ID and computed fields from response; keep plan values for user-specified fields
+	plan.ID = types.StringValue(result.ID)
+	plan.CreatedAt = stringOrNull(result.CreatedAt)
+	plan.UpdatedAt = stringOrNull(result.UpdatedAt)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 

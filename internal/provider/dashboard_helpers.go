@@ -20,10 +20,11 @@ func expandDashboard(ctx context.Context, plan DashboardResourceModel, diags *di
 		diags.Append(plan.Tiles.ElementsAs(ctx, &tileModels, false)...)
 		for _, tm := range tileModels {
 			tile := client.Tile{
-				X: tm.X.ValueFloat64(),
-				Y: tm.Y.ValueFloat64(),
-				W: tm.W.ValueFloat64(),
-				H: tm.H.ValueFloat64(),
+				ID: client.GenerateTileID(),
+				X:  tm.X.ValueFloat64(),
+				Y:  tm.Y.ValueFloat64(),
+				W:  tm.W.ValueFloat64(),
+				H:  tm.H.ValueFloat64(),
 			}
 
 			if !tm.Config.IsNull() {

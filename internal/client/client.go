@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -119,7 +120,7 @@ type Dashboard struct {
 }
 
 type Tile struct {
-	ID     string     `json:"id,omitempty"`
+	ID     string     `json:"id"`
 	X      float64    `json:"x"`
 	Y      float64    `json:"y"`
 	W      float64    `json:"w"`
@@ -128,12 +129,12 @@ type Tile struct {
 }
 
 type TileConfig struct {
-	Name           string       `json:"name,omitempty"`
+	Name           string       `json:"name"`
 	DisplayType    string       `json:"displayType"`
 	Source         string       `json:"source,omitempty"`
 	Select         []SelectItem `json:"select,omitempty"`
 	GroupBy        string       `json:"groupBy,omitempty"`
-	Where          string       `json:"where,omitempty"`
+	Where          string       `json:"where"`
 	WhereLanguage  string       `json:"whereLanguage,omitempty"`
 	Granularity    string       `json:"granularity,omitempty"`
 	Fields         []string     `json:"fields,omitempty"`
@@ -144,11 +145,18 @@ type TileConfig struct {
 
 type SelectItem struct {
 	AggFn                string   `json:"aggFn"`
-	ValueExpression      string   `json:"valueExpression,omitempty"`
-	AggCondition         string   `json:"aggCondition,omitempty"`
+	ValueExpression      string   `json:"valueExpression"`
+	AggCondition         string   `json:"aggCondition"`
 	AggConditionLanguage string   `json:"aggConditionLanguage,omitempty"`
 	Alias                string   `json:"alias,omitempty"`
 	Level                *float64 `json:"level,omitempty"`
+}
+
+// GenerateTileID creates a short random ID for a tile.
+func GenerateTileID() string {
+	b := make([]byte, 4)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }
 
 type NumberFormat struct {
