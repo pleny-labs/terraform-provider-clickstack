@@ -211,7 +211,7 @@ func (c *Client) CreateDashboard(ctx context.Context, d Dashboard) (*Dashboard, 
 }
 
 func (c *Client) UpdateDashboard(ctx context.Context, id string, d Dashboard) (*Dashboard, error) {
-	resp, err := c.doRequest(ctx, http.MethodPut, c.apiPath("/dashboards/")+id, d)
+	resp, err := c.doRequest(ctx, http.MethodPatch, c.apiPath("/dashboards/")+id, d)
 	if err != nil {
 		return nil, err
 	}
