@@ -30,15 +30,11 @@ signs:
   - artifacts: checksum
     args:
       - "--batch"
-      - "--pinentry-mode"
-      - "loopback"
-      - "--passphrase-fd"
-      - "0"
+      - "--yes"
       - "--output"
       - "${signature}"
       - "--detach-sign"
       - "${artifact}"
-    stdin: "{{ .Env.GPG_PASSWORD }}"
 release:
   draft: false
 changelog:
