@@ -18,42 +18,43 @@ resource "clickstack_dashboard" "example" {
   tags = ["production", "sre"]
 
   tiles {
-    name = "Request Rate"
-    x    = 0
-    y    = 0
-    w    = 6
-    h    = 3
+    x = 0
+    y = 0
+    w = 12
+    h = 8
 
     config {
-      display_type = "line"
-      source_id    = data.clickstack_sources.all.sources[0].id
+      name           = "Request Rate"
+      display_type   = "line"
+      source         = data.clickstack_sources.all.sources[0].id
+      group_by       = "ServiceName"
+      where_language = "lucene"
+      granularity    = "5 minute"
 
       select {
         agg_fn           = "count"
-        value_expression = "*"
+        value_expression = ""
       }
-
-      group_by = ["ServiceName"]
     }
   }
 
   tiles {
-    name = "Error Count"
-    x    = 6
-    y    = 0
-    w    = 6
-    h    = 3
+    x = 12
+    y = 0
+    w = 12
+    h = 8
 
     config {
-      display_type = "number"
-      source_id    = data.clickstack_sources.all.sources[0].id
+      name           = "Error Count"
+      display_type   = "number"
+      source         = data.clickstack_sources.all.sources[0].id
+      where_language = "lucene"
 
       select {
-        agg_fn           = "count"
-        value_expression = "*"
-        where            = "SeverityText = 'ERROR'"
-        where_language   = "sql"
-        alias            = "Errors"
+        agg_fn                 = "count"
+        value_expression       = ""
+        agg_condition          = "SeverityText:ERROR"
+        agg_condition_language = "lucene"
       }
     }
   }
@@ -109,7 +110,6 @@ Optional:
 Required:
 
 - `h` (Number) Height in grid units.
-- `name` (String) Tile display name.
 - `w` (Number) Width in grid units.
 - `x` (Number) Horizontal position.
 - `y` (Number) Vertical position.
@@ -124,15 +124,19 @@ Optional:
 Required:
 
 - `display_type` (String) Chart type: line, table, number, search, or markdown.
+- `name` (String) Tile display name.
 
 Optional:
 
 - `content` (String) Content for markdown tiles.
 - `fields` (List of String) Fields for search-type displays.
-- `group_by` (List of String) Fields for grouping results.
+- `granularity` (String) Time granularity (e.g. 5 minute, 1 hour).
+- `group_by` (String) Field to group results by.
 - `select` (Block List) Aggregation specifications. (see [below for nested schema](#nestedblock--tiles--config--select))
 - `sort_order` (String) Sort order: asc or desc.
-- `source_id` (String) Data source identifier.
+- `source` (String) Data source identifier.
+- `where` (String) Filter condition for the tile.
+- `where_language` (String) Filter language: sql or lucene.
 
 <a id="nestedblock--tiles--config--select"></a>
 ### Nested Schema for `tiles.config.select`
@@ -143,8 +147,8 @@ Required:
 
 Optional:
 
+- `agg_condition` (String) Aggregation filter condition (e.g. SeverityText:ERROR).
+- `agg_condition_language` (String) Language for agg_condition: sql or lucene.
 - `alias` (String) Display name for the aggregation.
 - `level` (Number) Percentile level for quantile aggregation (0.5-0.99).
 - `value_expression` (String) Column or expression to aggregate.
-- `where` (String) Filter condition.
-- `where_language` (String) Filter language: sql or lucene.
