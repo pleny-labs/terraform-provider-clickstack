@@ -393,33 +393,30 @@ func (c *Client) GetWebhook(ctx context.Context, id string) (*Webhook, error) {
 }
 
 func (c *Client) CreateWebhook(ctx context.Context, w Webhook) (*Webhook, error) {
-	// Webhook mutations use the v1 /api/webhooks path, not the v2 base path
-	resp, err := c.doRequest(ctx, http.MethodPost, "/api/webhooks", w)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.apiPath("/webhooks"), w)
 	if err != nil {
 		return nil, err
 	}
-	var webhook Webhook
-	if err := json.Unmarshal(resp, &webhook); err != nil {
-		return nil, fmt.Errorf("unmarshaling webhook: %w", err)
+	result, err := unmarshalResponse[Webhook](resp)
+	if err != nil {
+		return nil, err
 	}
-	return &webhook, nil
+	return &result, nil
 }
 
 func (c *Client) UpdateWebhook(ctx context.Context, id string, w Webhook) (*Webhook, error) {
-	// Webhook mutations use the v1 /api/webhooks path, not the v2 base path
-	resp, err := c.doRequest(ctx, http.MethodPut, "/api/webhooks/"+id, w)
+	resp, err := c.doRequest(ctx, http.MethodPut, c.apiPath("/webhooks/")+id, w)
 	if err != nil {
 		return nil, err
 	}
-	var webhook Webhook
-	if err := json.Unmarshal(resp, &webhook); err != nil {
-		return nil, fmt.Errorf("unmarshaling webhook: %w", err)
+	result, err := unmarshalResponse[Webhook](resp)
+	if err != nil {
+		return nil, err
 	}
-	return &webhook, nil
+	return &result, nil
 }
 
 func (c *Client) DeleteWebhook(ctx context.Context, id string) error {
-	// Webhook mutations use the v1 /api/webhooks path, not the v2 base path
-	_, err := c.doRequest(ctx, http.MethodDelete, "/api/webhooks/"+id, nil)
+	_, err := c.doRequest(ctx, http.MethodDelete, c.apiPath("/webhooks/")+id, nil)
 	return err
 }
