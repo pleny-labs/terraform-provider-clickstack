@@ -172,13 +172,19 @@ func flattenDashboard(ctx context.Context, d *client.Dashboard, state *Dashboard
 		selectList, slDiags := types.ListValue(types.ObjectType{AttrTypes: selectItemAttrTypes}, selectValues)
 		diags.Append(slDiags...)
 
-		// Build fields
-		fieldValues := make([]attr.Value, len(t.Config.Fields))
-		for j, f := range t.Config.Fields {
-			fieldValues[j] = types.StringValue(f)
+		// Build fields — use null for empty to avoid perpetual diff
+		var fieldsList types.List
+		if len(t.Config.Fields) > 0 {
+			fieldValues := make([]attr.Value, len(t.Config.Fields))
+			for j, f := range t.Config.Fields {
+				fieldValues[j] = types.StringValue(f)
+			}
+			var flDiags diag.Diagnostics
+			fieldsList, flDiags = types.ListValue(types.StringType, fieldValues)
+			diags.Append(flDiags...)
+		} else {
+			fieldsList = types.ListNull(types.StringType)
 		}
-		fieldsList, flDiags := types.ListValue(types.StringType, fieldValues)
-		diags.Append(flDiags...)
 
 		// Build config
 		configObj, cfgDiags := types.ObjectValue(tileConfigAttrTypes, map[string]attr.Value{
