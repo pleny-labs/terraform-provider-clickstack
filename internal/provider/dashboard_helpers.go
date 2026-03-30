@@ -20,11 +20,10 @@ func expandDashboard(ctx context.Context, plan DashboardResourceModel, diags *di
 		diags.Append(plan.Tiles.ElementsAs(ctx, &tileModels, false)...)
 		for _, tm := range tileModels {
 			tile := client.Tile{
-				Name: tm.Name.ValueString(),
-				X:    tm.X.ValueFloat64(),
-				Y:    tm.Y.ValueFloat64(),
-				W:    tm.W.ValueFloat64(),
-				H:    tm.H.ValueFloat64(),
+				X: tm.X.ValueFloat64(),
+				Y: tm.Y.ValueFloat64(),
+				W: tm.W.ValueFloat64(),
+				H: tm.H.ValueFloat64(),
 			}
 
 			if !tm.Config.IsNull() {
@@ -32,11 +31,23 @@ func expandDashboard(ctx context.Context, plan DashboardResourceModel, diags *di
 				diags.Append(tm.Config.ElementsAs(ctx, &configModels, false)...)
 				if len(configModels) > 0 {
 					cm := configModels[0]
+					tile.Config.Name = cm.Name.ValueString()
 					tile.Config.DisplayType = cm.DisplayType.ValueString()
 
-					if !cm.SourceID.IsNull() {
-						v := cm.SourceID.ValueString()
-						tile.Config.SourceID = &v
+					if !cm.Source.IsNull() {
+						tile.Config.Source = cm.Source.ValueString()
+					}
+					if !cm.GroupBy.IsNull() {
+						tile.Config.GroupBy = cm.GroupBy.ValueString()
+					}
+					if !cm.Where.IsNull() {
+						tile.Config.Where = cm.Where.ValueString()
+					}
+					if !cm.WhereLanguage.IsNull() {
+						tile.Config.WhereLanguage = cm.WhereLanguage.ValueString()
+					}
+					if !cm.Granularity.IsNull() {
+						tile.Config.Granularity = cm.Granularity.ValueString()
 					}
 					if !cm.Content.IsNull() {
 						v := cm.Content.ValueString()
@@ -45,11 +56,6 @@ func expandDashboard(ctx context.Context, plan DashboardResourceModel, diags *di
 					if !cm.SortOrder.IsNull() {
 						v := cm.SortOrder.ValueString()
 						tile.Config.SortOrder = &v
-					}
-					if !cm.GroupBy.IsNull() {
-						var groupBy []string
-						diags.Append(cm.GroupBy.ElementsAs(ctx, &groupBy, false)...)
-						tile.Config.GroupBy = groupBy
 					}
 					if !cm.Fields.IsNull() {
 						var fields []string
@@ -66,11 +72,11 @@ func expandDashboard(ctx context.Context, plan DashboardResourceModel, diags *di
 							if !sm.ValueExpression.IsNull() {
 								si.ValueExpression = sm.ValueExpression.ValueString()
 							}
-							if !sm.Where.IsNull() {
-								si.Where = sm.Where.ValueString()
+							if !sm.AggCondition.IsNull() {
+								si.AggCondition = sm.AggCondition.ValueString()
 							}
-							if !sm.WhereLanguage.IsNull() {
-								si.WhereLanguage = sm.WhereLanguage.ValueString()
+							if !sm.AggConditionLanguage.IsNull() {
+								si.AggConditionLanguage = sm.AggConditionLanguage.ValueString()
 							}
 							if !sm.Alias.IsNull() {
 								si.Alias = sm.Alias.ValueString()
@@ -151,65 +157,60 @@ func flattenDashboard(ctx context.Context, d *client.Dashboard, state *Dashboard
 			if si.Level != nil {
 				level = types.Float64Value(*si.Level)
 			}
-			obj, d := types.ObjectValue(selectItemAttrTypes, map[string]attr.Value{
-				"agg_fn":           types.StringValue(si.AggFn),
-				"value_expression": stringOrNull(si.ValueExpression),
-				"where":            stringOrNull(si.Where),
-				"where_language":   stringOrNull(si.WhereLanguage),
-				"alias":            stringOrNull(si.Alias),
-				"level":            level,
+			obj, objDiags := types.ObjectValue(selectItemAttrTypes, map[string]attr.Value{
+				"agg_fn":                 types.StringValue(si.AggFn),
+				"value_expression":       stringOrNull(si.ValueExpression),
+				"agg_condition":          stringOrNull(si.AggCondition),
+				"agg_condition_language": stringOrNull(si.AggConditionLanguage),
+				"alias":                  stringOrNull(si.Alias),
+				"level":                  level,
 			})
-			diags.Append(d...)
+			diags.Append(objDiags...)
 			selectValues[j] = obj
 		}
-		selectList, d := types.ListValue(types.ObjectType{AttrTypes: selectItemAttrTypes}, selectValues)
-		diags.Append(d...)
-
-		// Build group_by
-		groupByValues := make([]attr.Value, len(t.Config.GroupBy))
-		for j, g := range t.Config.GroupBy {
-			groupByValues[j] = types.StringValue(g)
-		}
-		groupByList, d := types.ListValue(types.StringType, groupByValues)
-		diags.Append(d...)
+		selectList, slDiags := types.ListValue(types.ObjectType{AttrTypes: selectItemAttrTypes}, selectValues)
+		diags.Append(slDiags...)
 
 		// Build fields
 		fieldValues := make([]attr.Value, len(t.Config.Fields))
 		for j, f := range t.Config.Fields {
 			fieldValues[j] = types.StringValue(f)
 		}
-		fieldsList, d := types.ListValue(types.StringType, fieldValues)
-		diags.Append(d...)
+		fieldsList, flDiags := types.ListValue(types.StringType, fieldValues)
+		diags.Append(flDiags...)
 
 		// Build config
-		configObj, d := types.ObjectValue(tileConfigAttrTypes, map[string]attr.Value{
-			"display_type": types.StringValue(t.Config.DisplayType),
-			"source_id":    stringPtrOrNull(t.Config.SourceID),
-			"content":      stringPtrOrNull(t.Config.Content),
-			"sort_order":   stringPtrOrNull(t.Config.SortOrder),
-			"group_by":     groupByList,
-			"fields":       fieldsList,
-			"select":       selectList,
+		configObj, cfgDiags := types.ObjectValue(tileConfigAttrTypes, map[string]attr.Value{
+			"name":           types.StringValue(t.Config.Name),
+			"display_type":   types.StringValue(t.Config.DisplayType),
+			"source":         stringOrNull(t.Config.Source),
+			"group_by":       stringOrNull(t.Config.GroupBy),
+			"where":          stringOrNull(t.Config.Where),
+			"where_language": stringOrNull(t.Config.WhereLanguage),
+			"granularity":    stringOrNull(t.Config.Granularity),
+			"content":        stringPtrOrNull(t.Config.Content),
+			"sort_order":     stringPtrOrNull(t.Config.SortOrder),
+			"fields":         fieldsList,
+			"select":         selectList,
 		})
-		diags.Append(d...)
+		diags.Append(cfgDiags...)
 
-		configList, d := types.ListValue(types.ObjectType{AttrTypes: tileConfigAttrTypes}, []attr.Value{configObj})
-		diags.Append(d...)
+		configList, clDiags := types.ListValue(types.ObjectType{AttrTypes: tileConfigAttrTypes}, []attr.Value{configObj})
+		diags.Append(clDiags...)
 
 		// Build tile
-		tileObj, d := types.ObjectValue(tileAttrTypes, map[string]attr.Value{
-			"name":   types.StringValue(t.Name),
+		tileObj, tileDiags := types.ObjectValue(tileAttrTypes, map[string]attr.Value{
 			"x":      types.Float64Value(t.X),
 			"y":      types.Float64Value(t.Y),
 			"w":      types.Float64Value(t.W),
 			"h":      types.Float64Value(t.H),
 			"config": configList,
 		})
-		diags.Append(d...)
+		diags.Append(tileDiags...)
 		tileValues[i] = tileObj
 	}
-	tilesList, tileDiags := types.ListValue(types.ObjectType{AttrTypes: tileAttrTypes}, tileValues)
-	diags.Append(tileDiags...)
+	tilesList, tilesDiags := types.ListValue(types.ObjectType{AttrTypes: tileAttrTypes}, tileValues)
+	diags.Append(tilesDiags...)
 	state.Tiles = tilesList
 
 	// Tags
@@ -218,8 +219,8 @@ func flattenDashboard(ctx context.Context, d *client.Dashboard, state *Dashboard
 		for i, tag := range d.Tags {
 			tagValues[i] = types.StringValue(tag)
 		}
-		tagsList, d := types.ListValue(types.StringType, tagValues)
-		diags.Append(d...)
+		tagsList, tagDiags := types.ListValue(types.StringType, tagValues)
+		diags.Append(tagDiags...)
 		state.Tags = tagsList
 	} else {
 		state.Tags = types.ListNull(types.StringType)
@@ -241,17 +242,17 @@ func flattenDashboard(ctx context.Context, d *client.Dashboard, state *Dashboard
 	if len(d.Filters) > 0 {
 		filterValues := make([]attr.Value, len(d.Filters))
 		for i, f := range d.Filters {
-			obj, d := types.ObjectValue(filterAttrTypes, map[string]attr.Value{
+			obj, objDiags := types.ObjectValue(filterAttrTypes, map[string]attr.Value{
 				"type":       types.StringValue(f.Type),
 				"name":       types.StringValue(f.Name),
 				"expression": types.StringValue(f.Expression),
 				"source_id":  types.StringValue(f.SourceID),
 			})
-			diags.Append(d...)
+			diags.Append(objDiags...)
 			filterValues[i] = obj
 		}
-		filtersList, d := types.ListValue(types.ObjectType{AttrTypes: filterAttrTypes}, filterValues)
-		diags.Append(d...)
+		filtersList, flDiags := types.ListValue(types.ObjectType{AttrTypes: filterAttrTypes}, filterValues)
+		diags.Append(flDiags...)
 		state.Filters = filtersList
 	} else {
 		state.Filters = types.ListNull(types.ObjectType{AttrTypes: filterAttrTypes})
@@ -261,15 +262,15 @@ func flattenDashboard(ctx context.Context, d *client.Dashboard, state *Dashboard
 	if len(d.SavedFilterValues) > 0 {
 		sfvValues := make([]attr.Value, len(d.SavedFilterValues))
 		for i, sfv := range d.SavedFilterValues {
-			obj, d := types.ObjectValue(savedFilterValueAttrTypes, map[string]attr.Value{
+			obj, objDiags := types.ObjectValue(savedFilterValueAttrTypes, map[string]attr.Value{
 				"type":      stringOrNull(sfv.Type),
 				"condition": types.StringValue(sfv.Condition),
 			})
-			diags.Append(d...)
+			diags.Append(objDiags...)
 			sfvValues[i] = obj
 		}
-		sfvList, d := types.ListValue(types.ObjectType{AttrTypes: savedFilterValueAttrTypes}, sfvValues)
-		diags.Append(d...)
+		sfvList, sfvDiags := types.ListValue(types.ObjectType{AttrTypes: savedFilterValueAttrTypes}, sfvValues)
+		diags.Append(sfvDiags...)
 		state.SavedFilterValues = sfvList
 	} else {
 		state.SavedFilterValues = types.ListNull(types.ObjectType{AttrTypes: savedFilterValueAttrTypes})

@@ -120,7 +120,7 @@ type Dashboard struct {
 }
 
 type Tile struct {
-	Name   string     `json:"name"`
+	ID     string     `json:"id,omitempty"`
 	X      float64    `json:"x"`
 	Y      float64    `json:"y"`
 	W      float64    `json:"w"`
@@ -129,23 +129,27 @@ type Tile struct {
 }
 
 type TileConfig struct {
-	DisplayType  string       `json:"displayType"`
-	SourceID     *string      `json:"sourceId,omitempty"`
-	Select       []SelectItem `json:"select,omitempty"`
-	GroupBy      []string     `json:"groupBy,omitempty"`
-	Fields       []string     `json:"fields,omitempty"`
-	Content      *string      `json:"content,omitempty"`
-	SortOrder    *string      `json:"sortOrder,omitempty"`
-	NumberFormat *NumberFormat `json:"numberFormat,omitempty"`
+	Name           string       `json:"name,omitempty"`
+	DisplayType    string       `json:"displayType"`
+	Source         string       `json:"source,omitempty"`
+	Select         []SelectItem `json:"select,omitempty"`
+	GroupBy        string       `json:"groupBy,omitempty"`
+	Where          string       `json:"where,omitempty"`
+	WhereLanguage  string       `json:"whereLanguage,omitempty"`
+	Granularity    string       `json:"granularity,omitempty"`
+	Fields         []string     `json:"fields,omitempty"`
+	Content        *string      `json:"content,omitempty"`
+	SortOrder      *string      `json:"sortOrder,omitempty"`
+	NumberFormat   *NumberFormat `json:"numberFormat,omitempty"`
 }
 
 type SelectItem struct {
-	AggFn           string   `json:"aggFn"`
-	ValueExpression string   `json:"valueExpression,omitempty"`
-	Where           string   `json:"where,omitempty"`
-	WhereLanguage   string   `json:"whereLanguage,omitempty"`
-	Alias           string   `json:"alias,omitempty"`
-	Level           *float64 `json:"level,omitempty"`
+	AggFn                string   `json:"aggFn"`
+	ValueExpression      string   `json:"valueExpression,omitempty"`
+	AggCondition         string   `json:"aggCondition,omitempty"`
+	AggConditionLanguage string   `json:"aggConditionLanguage,omitempty"`
+	Alias                string   `json:"alias,omitempty"`
+	Level                *float64 `json:"level,omitempty"`
 }
 
 type NumberFormat struct {

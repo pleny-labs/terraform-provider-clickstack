@@ -36,31 +36,34 @@ type DashboardResourceModel struct {
 }
 
 type TileModel struct {
-	Name   types.String `tfsdk:"name"`
 	X      types.Float64 `tfsdk:"x"`
 	Y      types.Float64 `tfsdk:"y"`
 	W      types.Float64 `tfsdk:"w"`
 	H      types.Float64 `tfsdk:"h"`
-	Config types.List    `tfsdk:"config"`
+	Config types.List     `tfsdk:"config"`
 }
 
 type TileConfigModel struct {
-	DisplayType types.String `tfsdk:"display_type"`
-	SourceID    types.String `tfsdk:"source_id"`
-	Content     types.String `tfsdk:"content"`
-	SortOrder   types.String `tfsdk:"sort_order"`
-	GroupBy     types.List   `tfsdk:"group_by"`
-	Fields      types.List   `tfsdk:"fields"`
-	Select      types.List   `tfsdk:"select"`
+	Name          types.String `tfsdk:"name"`
+	DisplayType   types.String `tfsdk:"display_type"`
+	Source        types.String `tfsdk:"source"`
+	GroupBy       types.String `tfsdk:"group_by"`
+	Where         types.String `tfsdk:"where"`
+	WhereLanguage types.String `tfsdk:"where_language"`
+	Granularity   types.String `tfsdk:"granularity"`
+	Content       types.String `tfsdk:"content"`
+	SortOrder     types.String `tfsdk:"sort_order"`
+	Fields        types.List   `tfsdk:"fields"`
+	Select        types.List   `tfsdk:"select"`
 }
 
 type SelectItemModel struct {
-	AggFn           types.String  `tfsdk:"agg_fn"`
-	ValueExpression types.String  `tfsdk:"value_expression"`
-	Where           types.String  `tfsdk:"where"`
-	WhereLanguage   types.String  `tfsdk:"where_language"`
-	Alias           types.String  `tfsdk:"alias"`
-	Level           types.Float64 `tfsdk:"level"`
+	AggFn                types.String  `tfsdk:"agg_fn"`
+	ValueExpression      types.String  `tfsdk:"value_expression"`
+	AggCondition         types.String  `tfsdk:"agg_condition"`
+	AggConditionLanguage types.String  `tfsdk:"agg_condition_language"`
+	Alias                types.String  `tfsdk:"alias"`
+	Level                types.Float64 `tfsdk:"level"`
 }
 
 type FilterModel struct {
@@ -84,30 +87,33 @@ func (r *DashboardResource) Metadata(_ context.Context, req resource.MetadataReq
 }
 
 var selectItemAttrTypes = map[string]attr.Type{
-	"agg_fn":           types.StringType,
-	"value_expression": types.StringType,
-	"where":            types.StringType,
-	"where_language":   types.StringType,
-	"alias":            types.StringType,
-	"level":            types.Float64Type,
+	"agg_fn":                 types.StringType,
+	"value_expression":       types.StringType,
+	"agg_condition":          types.StringType,
+	"agg_condition_language": types.StringType,
+	"alias":                  types.StringType,
+	"level":                  types.Float64Type,
 }
 
 var tileConfigAttrTypes = map[string]attr.Type{
-	"display_type": types.StringType,
-	"source_id":    types.StringType,
-	"content":      types.StringType,
-	"sort_order":   types.StringType,
-	"group_by":     types.ListType{ElemType: types.StringType},
-	"fields":       types.ListType{ElemType: types.StringType},
-	"select":       types.ListType{ElemType: types.ObjectType{AttrTypes: selectItemAttrTypes}},
+	"name":           types.StringType,
+	"display_type":   types.StringType,
+	"source":         types.StringType,
+	"group_by":       types.StringType,
+	"where":          types.StringType,
+	"where_language": types.StringType,
+	"granularity":    types.StringType,
+	"content":        types.StringType,
+	"sort_order":     types.StringType,
+	"fields":         types.ListType{ElemType: types.StringType},
+	"select":         types.ListType{ElemType: types.ObjectType{AttrTypes: selectItemAttrTypes}},
 }
 
 var tileAttrTypes = map[string]attr.Type{
-	"name": types.StringType,
-	"x":    types.Float64Type,
-	"y":    types.Float64Type,
-	"w":    types.Float64Type,
-	"h":    types.Float64Type,
+	"x":      types.Float64Type,
+	"y":      types.Float64Type,
+	"w":      types.Float64Type,
+	"h":      types.Float64Type,
 	"config": types.ListType{ElemType: types.ObjectType{AttrTypes: tileConfigAttrTypes}},
 }
 
@@ -121,43 +127,6 @@ var filterAttrTypes = map[string]attr.Type{
 var savedFilterValueAttrTypes = map[string]attr.Type{
 	"type":      types.StringType,
 	"condition": types.StringType,
-}
-
-func selectItemSchema() schema.NestedBlockObject {
-	return schema.NestedBlockObject{
-		Attributes: map[string]schema.Attribute{
-			"agg_fn": schema.StringAttribute{
-				Description: "Aggregation function: avg, count, max, min, sum, count_distinct, last_value, quantile.",
-				Required:    true,
-				Validators: []validator.String{
-					stringvalidator.OneOf("avg", "count", "max", "min", "sum", "count_distinct", "last_value", "quantile"),
-				},
-			},
-			"value_expression": schema.StringAttribute{
-				Description: "Column or expression to aggregate.",
-				Optional:    true,
-			},
-			"where": schema.StringAttribute{
-				Description: "Filter condition.",
-				Optional:    true,
-			},
-			"where_language": schema.StringAttribute{
-				Description: "Filter language: sql or lucene.",
-				Optional:    true,
-				Validators: []validator.String{
-					stringvalidator.OneOf("sql", "lucene"),
-				},
-			},
-			"alias": schema.StringAttribute{
-				Description: "Display name for the aggregation.",
-				Optional:    true,
-			},
-			"level": schema.Float64Attribute{
-				Description: "Percentile level for quantile aggregation (0.5-0.99).",
-				Optional:    true,
-			},
-		},
-	}
 }
 
 func (r *DashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -197,10 +166,6 @@ func (r *DashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Description: "Dashboard tiles/charts.",
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
-						"name": schema.StringAttribute{
-							Description: "Tile display name.",
-							Required:    true,
-						},
 						"x": schema.Float64Attribute{
 							Description: "Horizontal position.",
 							Required:    true,
@@ -223,6 +188,10 @@ func (r *DashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 							Description: "Tile configuration (exactly one block).",
 							NestedObject: schema.NestedBlockObject{
 								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Description: "Tile display name.",
+										Required:    true,
+									},
 									"display_type": schema.StringAttribute{
 										Description: "Chart type: line, table, number, search, or markdown.",
 										Required:    true,
@@ -230,8 +199,27 @@ func (r *DashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 											stringvalidator.OneOf("line", "table", "number", "search", "markdown"),
 										},
 									},
-									"source_id": schema.StringAttribute{
+									"source": schema.StringAttribute{
 										Description: "Data source identifier.",
+										Optional:    true,
+									},
+									"group_by": schema.StringAttribute{
+										Description: "Field to group results by.",
+										Optional:    true,
+									},
+									"where": schema.StringAttribute{
+										Description: "Filter condition for the tile.",
+										Optional:    true,
+									},
+									"where_language": schema.StringAttribute{
+										Description: "Filter language: sql or lucene.",
+										Optional:    true,
+										Validators: []validator.String{
+											stringvalidator.OneOf("sql", "lucene"),
+										},
+									},
+									"granularity": schema.StringAttribute{
+										Description: "Time granularity (e.g. 5 minute, 1 hour).",
 										Optional:    true,
 									},
 									"content": schema.StringAttribute{
@@ -245,11 +233,6 @@ func (r *DashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 											stringvalidator.OneOf("asc", "desc"),
 										},
 									},
-									"group_by": schema.ListAttribute{
-										Description: "Fields for grouping results.",
-										Optional:    true,
-										ElementType: types.StringType,
-									},
 									"fields": schema.ListAttribute{
 										Description: "Fields for search-type displays.",
 										Optional:    true,
@@ -259,7 +242,40 @@ func (r *DashboardResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 								Blocks: map[string]schema.Block{
 									"select": schema.ListNestedBlock{
 										Description: "Aggregation specifications.",
-										NestedObject: selectItemSchema(),
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"agg_fn": schema.StringAttribute{
+													Description: "Aggregation function: avg, count, max, min, sum, count_distinct, last_value, quantile.",
+													Required:    true,
+													Validators: []validator.String{
+														stringvalidator.OneOf("avg", "count", "max", "min", "sum", "count_distinct", "last_value", "quantile"),
+													},
+												},
+												"value_expression": schema.StringAttribute{
+													Description: "Column or expression to aggregate.",
+													Optional:    true,
+												},
+												"agg_condition": schema.StringAttribute{
+													Description: "Aggregation filter condition (e.g. SeverityText:ERROR).",
+													Optional:    true,
+												},
+												"agg_condition_language": schema.StringAttribute{
+													Description: "Language for agg_condition: sql or lucene.",
+													Optional:    true,
+													Validators: []validator.String{
+														stringvalidator.OneOf("sql", "lucene"),
+													},
+												},
+												"alias": schema.StringAttribute{
+													Description: "Display name for the aggregation.",
+													Optional:    true,
+												},
+												"level": schema.Float64Attribute{
+													Description: "Percentile level for quantile aggregation (0.5-0.99).",
+													Optional:    true,
+												},
+											},
+										},
 									},
 								},
 							},
