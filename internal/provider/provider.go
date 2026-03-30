@@ -19,9 +19,10 @@ type ClickStackProvider struct {
 }
 
 type ClickStackProviderModel struct {
-	Endpoint    types.String `tfsdk:"endpoint"`
-	APIKey      types.String `tfsdk:"api_key"`
-	APIBasePath types.String `tfsdk:"api_base_path"`
+	Endpoint      types.String `tfsdk:"endpoint"`
+	APIKey        types.String `tfsdk:"api_key"`
+	APIBasePath   types.String `tfsdk:"api_base_path"`
+	SessionCookie types.String `tfsdk:"session_cookie"`
 }
 
 func New(version string) func() provider.Provider {
@@ -54,6 +55,11 @@ func (p *ClickStackProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 				Description: "The API base path prefix for all requests (e.g. /api or /api/v2). Defaults to /api. Can also be set via the CLICKSTACK_API_BASE_PATH environment variable.",
 				Optional:    true,
 			},
+			"session_cookie": schema.StringAttribute{
+				Description: "Session cookie value (connect.sid) for cookie-based authentication. Use this when the ClickStack instance does not support Bearer token auth (v2 API). Can also be set via the CLICKSTACK_SESSION_COOKIE environment variable.",
+				Optional:    true,
+				Sensitive:   true,
+			},
 		},
 	}
 }
@@ -82,11 +88,17 @@ func (p *ClickStackProvider) Configure(ctx context.Context, req provider.Configu
 	if !config.APIKey.IsNull() {
 		apiKey = config.APIKey.ValueString()
 	}
-	if apiKey == "" {
+
+	sessionCookie := os.Getenv("CLICKSTACK_SESSION_COOKIE")
+	if !config.SessionCookie.IsNull() {
+		sessionCookie = config.SessionCookie.ValueString()
+	}
+
+	if apiKey == "" && sessionCookie == "" {
 		resp.Diagnostics.AddError(
-			"Missing API Key",
-			"The provider cannot create the ClickStack API client because the API key is missing. "+
-				"Set the api_key in the provider configuration or via the CLICKSTACK_API_KEY environment variable.",
+			"Missing Authentication",
+			"The provider requires either api_key (for v2 API) or session_cookie (for internal API). "+
+				"Set one via provider configuration or environment variables (CLICKSTACK_API_KEY / CLICKSTACK_SESSION_COOKIE).",
 		)
 		return
 	}
@@ -96,7 +108,7 @@ func (p *ClickStackProvider) Configure(ctx context.Context, req provider.Configu
 		apiBasePath = config.APIBasePath.ValueString()
 	}
 
-	c := client.NewClient(endpoint, apiKey, apiBasePath)
+	c := client.NewClient(endpoint, apiKey, sessionCookie, apiBasePath)
 	resp.DataSourceData = c
 	resp.ResourceData = c
 }

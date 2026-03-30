@@ -11,20 +11,22 @@ import (
 )
 
 type Client struct {
-	BaseURL     string
-	APIKey      string
-	APIBasePath string
-	HTTPClient  *http.Client
+	BaseURL       string
+	APIKey        string
+	SessionCookie string
+	APIBasePath   string
+	HTTPClient    *http.Client
 }
 
-func NewClient(baseURL, apiKey, apiBasePath string) *Client {
+func NewClient(baseURL, apiKey, sessionCookie, apiBasePath string) *Client {
 	if apiBasePath == "" {
 		apiBasePath = "/api"
 	}
 	return &Client{
-		BaseURL:     baseURL,
-		APIKey:      apiKey,
-		APIBasePath: apiBasePath,
+		BaseURL:       baseURL,
+		APIKey:        apiKey,
+		SessionCookie: sessionCookie,
+		APIBasePath:   apiBasePath,
 		HTTPClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -51,7 +53,11 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	if c.SessionCookie != "" {
+		req.Header.Set("Cookie", "connect.sid="+c.SessionCookie)
+	} else if c.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)
