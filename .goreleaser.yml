@@ -34,8 +34,6 @@ signs:
       - "loopback"
       - "--passphrase-fd"
       - "0"
-      - "--local-user"
-      - "{{ .Env.GPG_FINGERPRINT }}"
       - "--output"
       - "${signature}"
       - "--detach-sign"
