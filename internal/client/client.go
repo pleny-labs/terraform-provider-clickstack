@@ -83,26 +83,25 @@ type dataWrapper[T any] struct {
 	Data T `json:"data"`
 }
 
-// unmarshalResponse tries to unmarshal a v2 response. The v2 API may wrap responses
-// in a {"data": ...} envelope. We try the wrapper first; if the "data" field is
-// zero-valued we fall back to direct unmarshal for compatibility.
+// unmarshalResponse handles both wrapped {"data": ...} and direct JSON responses.
 func unmarshalResponse[T any](body []byte) (T, error) {
-	// Try direct unmarshal first (works for non-wrapped responses and v1 endpoints)
-	var direct T
-	if err := json.Unmarshal(body, &direct); err == nil {
-		// Check if it might be wrapped
-		var wrapper dataWrapper[T]
-		if json.Unmarshal(body, &wrapper) == nil {
-			// Heuristic: if we got a valid wrapper, check if a raw map has a "data" key
-			var raw map[string]json.RawMessage
-			if json.Unmarshal(body, &raw) == nil {
-				if _, hasData := raw["data"]; hasData {
-					return wrapper.Data, nil
-				}
+	// Check if response has a "data" wrapper
+	var raw map[string]json.RawMessage
+	if json.Unmarshal(body, &raw) == nil {
+		if dataField, hasData := raw["data"]; hasData {
+			var result T
+			if err := json.Unmarshal(dataField, &result); err == nil {
+				return result, nil
 			}
 		}
+	}
+
+	// Try direct unmarshal (works for non-wrapped responses)
+	var direct T
+	if err := json.Unmarshal(body, &direct); err == nil {
 		return direct, nil
 	}
+
 	return direct, fmt.Errorf("unmarshaling response: %s", string(body))
 }
 
