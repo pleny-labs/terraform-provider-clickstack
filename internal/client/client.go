@@ -373,7 +373,8 @@ func (c *Client) GetWebhook(ctx context.Context, id string) (*Webhook, error) {
 }
 
 func (c *Client) CreateWebhook(ctx context.Context, w Webhook) (*Webhook, error) {
-	resp, err := c.doRequest(ctx, http.MethodPost, c.apiPath("/webhooks"), w)
+	// Webhook mutations use the v1 /api/webhooks path, not the v2 base path
+	resp, err := c.doRequest(ctx, http.MethodPost, "/api/webhooks", w)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +386,8 @@ func (c *Client) CreateWebhook(ctx context.Context, w Webhook) (*Webhook, error)
 }
 
 func (c *Client) UpdateWebhook(ctx context.Context, id string, w Webhook) (*Webhook, error) {
-	resp, err := c.doRequest(ctx, http.MethodPut, c.apiPath("/webhooks/")+id, w)
+	// Webhook mutations use the v1 /api/webhooks path, not the v2 base path
+	resp, err := c.doRequest(ctx, http.MethodPut, "/api/webhooks/"+id, w)
 	if err != nil {
 		return nil, err
 	}
@@ -397,6 +399,7 @@ func (c *Client) UpdateWebhook(ctx context.Context, id string, w Webhook) (*Webh
 }
 
 func (c *Client) DeleteWebhook(ctx context.Context, id string) error {
-	_, err := c.doRequest(ctx, http.MethodDelete, c.apiPath("/webhooks/")+id, nil)
+	// Webhook mutations use the v1 /api/webhooks path, not the v2 base path
+	_, err := c.doRequest(ctx, http.MethodDelete, "/api/webhooks/"+id, nil)
 	return err
 }

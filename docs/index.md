@@ -36,5 +36,6 @@ variable "clickstack_api_key" {
 
 ### Optional
 
+- `api_base_path` (String) The API base path prefix for all requests (e.g. /api or /api/v2). Defaults to /api. Can also be set via the CLICKSTACK_API_BASE_PATH environment variable.
 - `api_key` (String, Sensitive) The ClickStack API key for authentication. Can also be set via the CLICKSTACK_API_KEY environment variable.
 - `endpoint` (String) The ClickStack API base URL. Can also be set via the CLICKSTACK_ENDPOINT environment variable.
