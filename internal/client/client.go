@@ -109,7 +109,7 @@ func unmarshalResponse[T any](body []byte) (T, error) {
 // --- Dashboards ---
 
 type Dashboard struct {
-	ID                 string             `json:"id,omitempty"`
+	ID                 string             `json:"_id,omitempty"`
 	Name               string             `json:"name"`
 	Tiles              []Tile             `json:"tiles"`
 	Tags               []string           `json:"tags,omitempty"`
@@ -175,15 +175,16 @@ func (c *Client) ListDashboards(ctx context.Context) ([]Dashboard, error) {
 }
 
 func (c *Client) GetDashboard(ctx context.Context, id string) (*Dashboard, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/dashboards/")+id, nil)
+	dashboards, err := c.ListDashboards(ctx)
 	if err != nil {
 		return nil, err
 	}
-	d, err := unmarshalResponse[Dashboard](resp)
-	if err != nil {
-		return nil, err
+	for _, d := range dashboards {
+		if d.ID == id {
+			return &d, nil
+		}
 	}
-	return &d, nil
+	return nil, fmt.Errorf("dashboard %s not found", id)
 }
 
 func (c *Client) CreateDashboard(ctx context.Context, d Dashboard) (*Dashboard, error) {
@@ -218,7 +219,7 @@ func (c *Client) DeleteDashboard(ctx context.Context, id string) error {
 // --- Alerts ---
 
 type Alert struct {
-	ID                    string        `json:"id,omitempty"`
+	ID                    string        `json:"_id,omitempty"`
 	Threshold             float64       `json:"threshold"`
 	Interval              string        `json:"interval"`
 	ThresholdType         string        `json:"thresholdType"`
@@ -259,15 +260,16 @@ func (c *Client) ListAlerts(ctx context.Context) ([]Alert, error) {
 }
 
 func (c *Client) GetAlert(ctx context.Context, id string) (*Alert, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/alerts/")+id, nil)
+	alerts, err := c.ListAlerts(ctx)
 	if err != nil {
 		return nil, err
 	}
-	a, err := unmarshalResponse[Alert](resp)
-	if err != nil {
-		return nil, err
+	for _, a := range alerts {
+		if a.ID == id {
+			return &a, nil
+		}
 	}
-	return &a, nil
+	return nil, fmt.Errorf("alert %s not found", id)
 }
 
 func (c *Client) CreateAlert(ctx context.Context, a Alert) (*Alert, error) {
@@ -302,7 +304,7 @@ func (c *Client) DeleteAlert(ctx context.Context, id string) error {
 // --- Sources ---
 
 type Source struct {
-	ID                                    string              `json:"id"`
+	ID                                    string              `json:"_id"`
 	Name                                  string              `json:"name"`
 	Kind                                  string              `json:"kind"`
 	Connection                            string              `json:"connection"`
@@ -344,7 +346,7 @@ func (c *Client) ListSources(ctx context.Context) ([]Source, error) {
 // --- Webhooks ---
 
 type Webhook struct {
-	ID          string            `json:"id,omitempty"`
+	ID          string            `json:"_id,omitempty"`
 	Name        string            `json:"name"`
 	Service     string            `json:"service"`
 	URL         string            `json:"url"`
@@ -357,7 +359,8 @@ type Webhook struct {
 }
 
 func (c *Client) ListWebhooks(ctx context.Context) ([]Webhook, error) {
-	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/webhooks"), nil)
+	// The internal API requires a service filter; query all known service types
+	resp, err := c.doRequest(ctx, http.MethodGet, c.apiPath("/webhooks")+"?service[]=slack&service[]=generic&service[]=incidentio", nil)
 	if err != nil {
 		return nil, err
 	}
