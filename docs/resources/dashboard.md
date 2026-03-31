@@ -152,3 +152,13 @@ Optional:
 - `alias` (String) Display name for the aggregation.
 - `level` (Number) Percentile level for quantile aggregation (0.5-0.99).
 - `value_expression` (String) Column or expression to aggregate.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clickstack_dashboard.example 69cafb78dacf4418bedbb174
+```

@@ -47,3 +47,13 @@ variable "slack_webhook_url" {
 - `created_at` (String) Creation timestamp.
 - `id` (String) The unique identifier of the webhook.
 - `updated_at` (String) Last update timestamp.
+
+## Import
+
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+terraform import clickstack_webhook.example 69cafb78dacf4418bedbb172
+```

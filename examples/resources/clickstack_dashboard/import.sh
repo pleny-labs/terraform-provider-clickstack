@@ -1,0 +1,1 @@
+terraform import clickstack_dashboard.example 69cafb78dacf4418bedbb174

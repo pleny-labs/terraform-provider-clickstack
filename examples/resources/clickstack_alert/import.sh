@@ -1,0 +1,1 @@
+terraform import clickstack_alert.example 69cafb78dacf4418bedbb180
